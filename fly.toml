@@ -1,0 +1,31 @@
+# fly.toml app configuration file generated for petstore-search-service on 2024-11-06T01:58:56+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'petstore-search-service'
+primary_region = 'bom'
+
+[env]
+  typesense.protocol = 'https'
+  typesense.host = 'crmpzhdevf02tgo4p-1.a1.typesense.net'
+  typesense.port = 443
+  typsense.apiKey = 'LRdzgotHcNNEBezzRVwZTVxqmL2dZivl'
+  'db.connection.password' = 'MoistMiser!@3'
+  'db.connection.url' = 'jdbc:mysql://monolith-mysql.internal:3306/petstore_schema?useSSL=false'
+  'db.connection.username' = 'ajay'
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

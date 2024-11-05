@@ -4,13 +4,16 @@ import jakarta.json.JsonObject;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ResponseContractMapper {
 
@@ -115,16 +118,16 @@ public class ResponseContractMapper {
 
     public Map<String, Object> mapDataToResponse(String contractPath, List<JsonObject> data) throws URISyntaxException, IOException {
 
-        JSONObject contract = new JSONObject(
-                Files.readString(
-                        Path.of(
-                                Objects.requireNonNull(
-                                                ResponseContractMapper.class.getResource(contractPath)
-                                        )
-                                        .toURI()
+        String json = new BufferedReader(
+                new InputStreamReader(
+                        Objects.requireNonNull(
+                                ResponseContractMapper.class.getResourceAsStream(contractPath)
                         )
                 )
-        );
+        ).lines()
+                .collect(Collectors.joining("\n"));
+
+        JSONObject contract = new JSONObject(json);
 
 //        System.out.println("contract: " + contract.toString(4));
 

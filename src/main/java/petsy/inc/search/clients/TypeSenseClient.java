@@ -16,10 +16,10 @@ public class TypeSenseClient {
     public TypeSenseClient() {
 
         List<Node> nodes = new ArrayList<>();
-        Config config = Config.create();
+        Config config = Config.global();
         nodes.add(
                 new Node(
-                        "http",       // For Typesense Cloud use https
+                        config.get("typesense").get("protocol").asString().get(),       // For Typesense Cloud use https
                         config.get("typesense").get("host").asString().get(),  // For Typesense Cloud use xxx.a1.typesense.net
                         config.get("typesense").get("port").asString().get()        // For Typesense Cloud use 443
                 )

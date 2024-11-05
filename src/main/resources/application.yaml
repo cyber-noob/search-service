@@ -6,6 +6,7 @@ app:
     greeting: "Hello"
 
 typesense:
+  protocol: "http"
   host: "localhost"
   port: 8108
   apiKey: "ltMhCKNH3kTD0g0HzkXpPq96iBSFxVVIjQAHtK6lH0URkPTv"
