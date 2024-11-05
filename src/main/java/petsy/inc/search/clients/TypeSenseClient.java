@@ -1,0 +1,47 @@
+package petsy.inc.search.clients;
+
+import io.helidon.config.Config;
+import org.typesense.api.Client;
+import org.typesense.api.Configuration;
+import org.typesense.resources.Node;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TypeSenseClient {
+
+    private static Client typeSenseClient = null;
+
+    public TypeSenseClient() {
+
+        List<Node> nodes = new ArrayList<>();
+        Config config = Config.create();
+        nodes.add(
+                new Node(
+                        "http",       // For Typesense Cloud use https
+                        config.get("typesense").get("host").asString().get(),  // For Typesense Cloud use xxx.a1.typesense.net
+                        config.get("typesense").get("port").asString().get()        // For Typesense Cloud use 443
+                )
+        );
+
+        Configuration configuration = new Configuration(
+                nodes,
+                Duration.ofSeconds(2),
+                config.get("typesense")
+                        .get("apiKey")
+                        .asString()
+                        .get()
+        );
+
+        typeSenseClient =  new Client(configuration);
+    }
+
+    public static Client getTypeSenseClient() {
+
+        if (typeSenseClient == null)
+            new TypeSenseClient();
+
+        return typeSenseClient;
+    }
+}

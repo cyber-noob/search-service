@@ -1,0 +1,38 @@
+server:
+  port: 8085
+  host: 0.0.0.0
+
+app:
+    greeting: "Hello"
+
+typesense:
+  host: "localhost"
+  port: 8108
+  apiKey: "ltMhCKNH3kTD0g0HzkXpPq96iBSFxVVIjQAHtK6lH0URkPTv"
+
+db:
+  source: "jdbc"
+  connection:
+    url: "jdbc:mysql://127.0.0.1:3306/petstore_schema?useSSL=false"
+    username: "root"
+    password: "MoistMiser!@3"
+    initializationFailTimeout: -1
+    connectionTimeout: 2000
+  health-check:
+    type: "query"
+    statementName: "health-check"
+  statements:
+    health-check: "SELECT 0"
+
+    #Product Queries
+    fetch-products: "SELECT pa.title, pa.description, pa.slug as pslug, pa.uuid, IFNULL(w.product_id, 'NA') as isWishlisted,
+    p.url, p.published_on, b.breed, b.slug as bslug, f.family, f.slug as fslug, c.collection, c.slug as cslug,
+    g.gender, pa.color, pa.weight, pa.age, bt.breed_type, pa.seller_id, pa.price, pa.mrp, pa.created_on, pa.count
+    FROM Products_Animal pa 
+    LEFT JOIN Wishlist w ON pa.uuid = w.product_id
+    INNER JOIN Photos p ON pa.uuid = p.product_id 
+    INNER JOIN Breed b ON pa.breed = b.idBreed
+    INNER JOIN BreedType bt ON pa.breed_type = bt.idBreedType 
+    INNER JOIN Family f ON pa.family = f.idFamily
+    INNER JOIN Collections c ON pa.collection_id = c.idCollections
+    INNER JOIN gender g ON pa.sex = g.idgender"
