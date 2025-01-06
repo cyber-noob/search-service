@@ -1,15 +1,14 @@
 package petsy.inc.search.services;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
+import io.helidon.dbclient.DbRow;
 import io.helidon.scheduling.FixedRate;
 import io.helidon.scheduling.Scheduling;
 import jakarta.json.JsonObject;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.typesense.api.Client;
 import org.typesense.api.FieldTypes;
@@ -17,25 +16,21 @@ import org.typesense.api.exceptions.ObjectAlreadyExists;
 import org.typesense.model.*;
 import petsy.inc.search.clients.TypeSenseClient;
 import petsy.inc.search.utils.JsonConverter;
-import petsy.inc.search.utils.ResponseContractMapper;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class SearchIndexerService {
 
     Client typeSenseClient = TypeSenseClient.getTypeSenseClient();
 
     private final DbClient dbClient;
-
-    private final ResponseContractMapper responseContractMapper = new ResponseContractMapper();
 
     public SearchIndexerService() {
         Config config = Config.global().get("db");
@@ -60,20 +55,24 @@ public class SearchIndexerService {
 
     private void createCollection() {
 
-        List<String> embedFrom = List.of("title", "description");
+        List<String> embedFrom = List.of("product.general_info.title", "product.general_info.description");
 
         CollectionSchema productsCollection = new CollectionSchema().name("products")
-                .defaultSortingField("created_on")
+//                .defaultSortingField("product.general_info.created_on")
                 .enableNestedFields(true)
-                .addFieldsItem(new Field().name("title").type(FieldTypes.STRING).sort(true))
-                .addFieldsItem(new Field().name("description").type(FieldTypes.STRING))
-                .addFieldsItem(new Field().name("price").type(FieldTypes.INT32).sort(true).facet(true))
-                .addFieldsItem(new Field().name("longDescription.gender").type(FieldTypes.STRING).facet(true))
-                .addFieldsItem(new Field().name("longDescription.breed_type").type(FieldTypes.STRING).facet(true))
-                .addFieldsItem(new Field().name("longDescription.age").type(FieldTypes.INT32).facet(true))
-                .addFieldsItem(new Field().name("longDescription.color").type(FieldTypes.STRING).facet(true))
-                .addFieldsItem(new Field().name("categoryPool").type(FieldTypes.OBJECT_ARRAY).facet(true))
-                .addFieldsItem(new Field().name("created_on").type(FieldTypes.INT32).sort(true))
+                .addFieldsItem(new Field().name("id").type(FieldTypes.STRING))
+                .addFieldsItem(new Field().name("category").type(FieldTypes.STRING))
+                .addFieldsItem(new Field().name("family").type(FieldTypes.STRING))
+                .addFieldsItem(new Field().name("product.general_info.title").type(FieldTypes.STRING).sort(true))
+                .addFieldsItem(new Field().name("product.general_info.description").type(FieldTypes.STRING))
+                .addFieldsItem(new Field().name("product.general_info.collection").type(FieldTypes.STRING).facet(true))
+                .addFieldsItem(new Field().name("product.general_info.price").type(FieldTypes.INT32).sort(true).facet(true))
+                .addFieldsItem(new Field().name("product.sex").type(FieldTypes.STRING).facet(true).optional(true))
+                .addFieldsItem(new Field().name("product.breed").type(FieldTypes.STRING).facet(true).optional(true))
+                .addFieldsItem(new Field().name("product.age_in_days").type(FieldTypes.INT32).facet(true).optional(true))
+                .addFieldsItem(new Field().name("product.color").type(FieldTypes.STRING).facet(true).optional(true))
+                .addFieldsItem(new Field().name("product.categoryPool").type(FieldTypes.OBJECT_ARRAY).facet(true))
+//                .addFieldsItem(new Field().name("product.general_info.created_on").type(FieldTypes.STRING).sort(true))
                 .addFieldsItem(
                         new Field().name("embedding")
                                 .type("float[]")
@@ -82,7 +81,7 @@ public class SearchIndexerService {
                                                 .from(embedFrom)
                                                 .modelConfig(
                                                         new FieldEmbedModelConfig()
-                                                                .modelName("ts/paraphrase-multilingual-mpnet-base-v2")
+                                                                .modelName("ts/all-MiniLM-L12-v2")
                                                 )
                                 )
                 );
@@ -102,40 +101,20 @@ public class SearchIndexerService {
 
     private List<JSONObject> getProducts() throws URISyntaxException, IOException {
 
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-d'T'HH:mm:ss");
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        List<JsonObject> data = dbClient.execute().namedQuery("fetch-products")
-                .map(row -> row.as(JsonObject.class))
+        List<DbRow> data = dbClient.execute()
+                .namedQuery("fetch-products")
                 .toList();
 
-        Map<String, List<JsonObject>> groups = data.stream()
-                .collect(Collectors.groupingBy(row -> row.getString("pslug")));
-
-        List<JSONObject> result = new ArrayList<>();
-        groups.values()
-                .forEach(group -> {
-                    try {
-                        Map<String, Object> product = responseContractMapper.mapDataToResponse("/responsecontracts/products.json", group);
-                        product.put("currencySymbol", "₹");
-                        product.put("isWishlisted", !product.get("isWishlisted").toString().equals("\"NA\""));
-                        product.put("active", true);
-                        product.put("hasStock", Integer.parseInt(product.get("count").toString()) > 0);
-                        product.remove("count");
-
-                        String createdOn = product.get("created_on").toString();
-                        createdOn = createdOn.substring(1, createdOn.length() - 1);
-                        product.put("created_on", format.parse(createdOn).getTime());
-                        product.put("id", product.get("uuid"));
-
-//                        System.out.println("json of map: " + JsonConverter.convertMapToJson(product) + "\n\n");
-                        result.add(JsonConverter.convertMapToJson(product));
-                    } catch (URISyntaxException | IOException | ParseException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
-        return result;
+        List<JSONObject> list = new ArrayList<>();
+        data.forEach(row -> {
+            JSONObject item = new JSONObject();
+            item.put("id", row.column("idProduct").getString());
+            item.put("category", Collections.valueOf(row.column("category").getString()).getSlug());
+            item.put("family", row.column("family").getString());
+            item.put("product", new JSONObject(row.column("details").getString()));
+            list.add(item);
+        });
+        return list;
     }
 
     private void indexItems() throws Exception {
@@ -153,7 +132,7 @@ public class SearchIndexerService {
         System.out.println("\n\nItems indexed: " + response);
 
         SearchParameters searchParameters = new SearchParameters().q("*")
-                .queryBy("title");
+                .queryBy("product.general_info.title");
 
         Integer total = typeSenseClient.collections("products")
                 .documents()

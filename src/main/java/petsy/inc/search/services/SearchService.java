@@ -6,18 +6,14 @@ import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.typesense.api.Client;
 import org.typesense.model.CollectionResponse;
 import org.typesense.model.SearchParameters;
 import org.typesense.model.SearchResult;
 import petsy.inc.search.clients.TypeSenseClient;
-import petsy.inc.search.utils.JsonConverter;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SearchService implements HttpService {
 
@@ -50,10 +46,10 @@ public class SearchService implements HttpService {
             case "simple" -> {
                 SearchParameters searchParameters = new SearchParameters()
                         .q(q)
-                        .queryBy("title")
+                        .queryBy("product.general_info.title")
                         .filterBy(filter)
                         .filterBy(groups)
-                        .sortBy("created_on:desc")
+                        .sortBy("product.general_info.created_on:desc")
                         .excludeFields("embedding");
 
                 SearchResult searchResult = typeSenseClient.collections("products")
@@ -64,10 +60,10 @@ public class SearchService implements HttpService {
             }
 
             case "semantic" -> {
-                String s = (!sort.isEmpty()) ? sort : "_text_match:desc,created_on:desc";
+                String s = (!sort.isEmpty()) ? sort : "_text_match:desc";
                 SearchParameters searchParameters = new SearchParameters()
                         .q(q)
-                        .queryBy("embedding,title")
+                        .queryBy("embedding,product.general_info.title")
 //                        .vectorQuery("embedding:([], alpha: 0.2)")
                         .filterBy(filter)
                         .facetBy(groups)

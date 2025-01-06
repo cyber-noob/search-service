@@ -26,14 +26,4 @@ db:
     health-check: "SELECT 0"
 
     #Product Queries
-    fetch-products: "SELECT pa.title, pa.description, pa.slug as pslug, pa.uuid, IFNULL(w.product_id, 'NA') as isWishlisted,
-    p.url, p.published_on, b.breed, b.slug as bslug, f.family, f.slug as fslug, c.collection, c.slug as cslug,
-    g.gender, pa.color, pa.weight, pa.age, bt.breed_type, pa.seller_id, pa.price, pa.mrp, pa.created_on, pa.count
-    FROM Products_Animal pa 
-    LEFT JOIN Wishlist w ON pa.uuid = w.product_id
-    INNER JOIN Photos p ON pa.uuid = p.product_id 
-    INNER JOIN Breed b ON pa.breed = b.idBreed
-    INNER JOIN BreedType bt ON pa.breed_type = bt.idBreedType 
-    INNER JOIN Family f ON pa.family = f.idFamily
-    INNER JOIN Collections c ON pa.collection_id = c.idCollections
-    INNER JOIN gender g ON pa.sex = g.idgender"
+    fetch-products: "SELECT * FROM Product"

@@ -25,9 +25,20 @@ public class TypeSenseClient {
                 )
         );
 
+        System.out.println("typesense host: " + config.get("typesense")
+                .get("host")
+                .asString()
+                .get()
+        );
+
+        System.out.println("typesense key: " + config.get("typesense")
+                .get("apiKey")
+                .asString()
+                .get()
+        );
         Configuration configuration = new Configuration(
                 nodes,
-                Duration.ofSeconds(2),
+                Duration.ofMinutes(3),
                 config.get("typesense")
                         .get("apiKey")
                         .asString()
