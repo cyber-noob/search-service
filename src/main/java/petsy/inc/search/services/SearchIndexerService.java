@@ -1,14 +1,11 @@
 package petsy.inc.search.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbRow;
 import io.helidon.scheduling.FixedRate;
 import io.helidon.scheduling.Scheduling;
-import jakarta.json.JsonObject;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.typesense.api.Client;
 import org.typesense.api.FieldTypes;
@@ -21,10 +18,10 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SearchIndexerService {
 
@@ -43,9 +40,9 @@ public class SearchIndexerService {
 
         Scheduling.fixedRate()
                 .initialDelay(1)
-                .delay(1)
+                .delay(10)
                 .delayType(FixedRate.DelayType.SINCE_PREVIOUS_END)
-                .timeUnit(TimeUnit.MINUTES)
+                .timeUnit(TimeUnit.SECONDS)
                 .task(invocation -> indexItems())
                 .build();
 
@@ -119,7 +116,8 @@ public class SearchIndexerService {
 
     private void indexItems() throws Exception {
         createCollection();
-        String productsData = Files.readString(Path.of(JsonConverter.jsonToJsonl(getProducts()).getPath()));
+        List<JSONObject> products = getProducts();
+        String productsData = Files.readString(Path.of(JsonConverter.jsonToJsonl(products).getPath()));
         String response = typeSenseClient.collections("products")
                 .documents()
                 .import_(
@@ -139,7 +137,41 @@ public class SearchIndexerService {
                 .search(searchParameters)
                 .getOutOf();
 
+        products.parallelStream()
+                .forEach(product -> {
+                    try {
+                        dbClient.execute()
+                                .createUpdate("UPDATE Product SET indexed = 1 WHERE idProduct = ?")
+                                .addParam(product.getString("id"))
+                                .execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+        List<DbRow> deletedItems = dbClient.execute()
+                .namedQuery("fetch-deleted-products")
+                .toList();
+
+        AtomicLong deleted = new AtomicLong();
+        deletedItems.parallelStream()
+                        .forEach(deletedItem ->
+                        {
+                            try {
+                                typeSenseClient.collections("products")
+                                        .documents(deletedItem.column("idDeletedProducts").getString())
+                                        .delete();
+                                deleted.set(dbClient.execute()
+                                        .createUpdate("UPDATE DeletedProducts SET deleted = 1 WHERE idDeletedProducts = ?")
+                                        .addParam(deletedItem.column("idDeletedProducts").getString())
+                                        .execute());
+                            } catch (Exception e) {
+                                System.out.println("Item not indexed here...");
+                            }
+                        });
+
         System.out.println("Total docs indexed: " + total);
+        System.out.println("Items deleted: " + deleted);
     }
 
 }

@@ -9,7 +9,7 @@ primary_region = 'bom'
 [build]
 
 [env]
-  'db.connection.password' = 'MoistMiser!@3'
+  'db.connection.password' = 'DecryptoCipher$98'
   'db.connection.url' = 'jdbc:mysql://monolith-mysql.internal:3306/petstore_schema?useSSL=false'
   'db.connection.username' = 'ajay'
   'typesense.apiKey' = 'JznsrBqgz7WClkaPnPVuz66eiyULOBDQ'

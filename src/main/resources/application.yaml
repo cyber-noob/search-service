@@ -26,4 +26,5 @@ db:
     health-check: "SELECT 0"
 
     #Product Queries
-    fetch-products: "SELECT * FROM Product"
+    fetch-products: "SELECT * FROM Product WHERE indexed = 0"
+    fetch-deleted-products: "SELECT * FROM DeletedProducts WHERE deleted = 0"
