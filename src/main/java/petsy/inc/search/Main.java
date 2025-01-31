@@ -29,7 +29,7 @@ public class Main {
      * Application main entry point.
      * @param args command line arguments.
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         
         // load logging configuration
         LogConfig.configureRuntime();
@@ -47,9 +47,11 @@ public class Main {
                 .build()
                 .start();
 
-        new SearchIndexerService().schedule();
+        SearchIndexerService searchIndexerService = new SearchIndexerService();
+        searchIndexerService.schedule();
         System.out.println("WEB server is up! http://localhost:" + server.port() + "/simple-greet");
 
+        searchIndexerService.indexItems();
     }
 
 

@@ -102,8 +102,8 @@ public class SearchService implements HttpService {
     }
 
     public void deleteCollection(ServerRequest request, ServerResponse response) throws Exception {
-
-        CollectionResponse collectionResponse = typeSenseClient.collections("products").delete();
+        String collection = request.query().get("collection");
+        CollectionResponse collectionResponse = typeSenseClient.collections(collection).delete();
         response.send(collectionResponse.toString());
     }
 }

@@ -42,7 +42,7 @@ public class SearchIndexerService {
                 .initialDelay(1)
                 .delay(10)
                 .delayType(FixedRate.DelayType.SINCE_PREVIOUS_END)
-                .timeUnit(TimeUnit.SECONDS)
+                .timeUnit(TimeUnit.MINUTES)
                 .task(invocation -> indexItems())
                 .build();
 
@@ -114,7 +114,7 @@ public class SearchIndexerService {
         return list;
     }
 
-    private void indexItems() throws Exception {
+    public void indexItems() throws Exception {
         createCollection();
         List<JSONObject> products = getProducts();
         String productsData = Files.readString(Path.of(JsonConverter.jsonToJsonl(products).getPath()));
